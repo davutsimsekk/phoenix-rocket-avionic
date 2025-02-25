@@ -64,7 +64,7 @@ HAL_StatusTypeDef Read_Calibration_Data(I2C_HandleTypeDef *hi2c,BMP280_Data *dev
     dev->calib_data.dig_P8 = (int16_t)((uint16_t)calib_data_buffer[20] | ((uint16_t)calib_data_buffer[21] << 8));
     dev->calib_data.dig_P9 = (int16_t)((uint16_t)calib_data_buffer[22] | ((uint16_t)calib_data_buffer[23] << 8));
 
-    return HAL_ERROR;
+    return HAL_OK;
     
 }
 
@@ -76,7 +76,7 @@ HAL_StatusTypeDef BMP280_Config(I2C_HandleTypeDef *hi2c, bmp280_oversampling_mod
 	}
     //sifirla ve yeni degeri gir 0x3F=0011 1111 (63)
     ctrl_meas_reg &= ~0x3F;
-    ctrl_meas_reg |= (temp_os << 5) | (pressure_os<< 2)||mode;
+    ctrl_meas_reg |= (temp_os << 5) | (pressure_os<< 2)|mode;
     status=HAL_I2C_Mem_Write(hi2c, BMP280_I2C_ADDR, BMP280_REG_CTRL_MEAS, I2C_MEMADD_SIZE_8BIT, &ctrl_meas_reg, 1, 100);
     return status;
 }

@@ -129,7 +129,7 @@ HAL_StatusTypeDef BMP280_Read_Data(I2C_HandleTypeDef *hi2c,BMP280_Data *bmp280_d
 
 float BMP280_Compensate_Temperature(int32_t rawTemperature, int32_t *t_fine,BMP280_Data *dev);
 
-float BMP280_compensate_Pressure(int32_t rawPressure, int32_t t_fine,BMP280_Data *dev);
+float BMP280_Compensate_Pressure(int32_t rawPressure, int32_t t_fine,BMP280_Data *dev);
 
 
 HAL_StatusTypeDef BMP280_Set_Filter(I2C_HandleTypeDef *hi2c, BMP280_Filter filter);

@@ -23,6 +23,8 @@
 /* USER CODE BEGIN Includes */
 #include "mpu9250.h"
 #include "string.h"
+#include <stdio.h>
+#include "bmp280.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,6 +46,7 @@
 I2C_HandleTypeDef hi2c1;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
@@ -52,8 +55,9 @@ UART_HandleTypeDef huart1;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_USART1_UART_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_USART1_UART_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -64,8 +68,65 @@ static void MX_I2C1_Init(void);
 void send_uart_message(char *message) {
     HAL_UART_Transmit(&huart1, (uint8_t*)message, strlen(message), HAL_MAX_DELAY);
 }
+void UART_Send_LowByte(UART_HandleTypeDef *huart, int16_t data) {
+    uint8_t lowerByte = data & 0xFF;  // Extract the lower 8 bits
+    HAL_UART_Transmit(huart, &lowerByte, 1, HAL_MAX_DELAY);  // Send only 1 byte
+}
+//void sendFloatAsString(float value) {
+//	uint32_t val=(uint32_t)value;
+//	HAL_UART_Transmit(&huart1,&val ,1, HAL_MAX_DELAY);
+//}
+void sendFloatAsBytes(float value) {
+    uint8_t buffer[4];
+    memcpy(buffer, &value, 4);  // Float'ı 4 byte'a böl
+    HAL_UART_Transmit(&huart1, buffer, 4, HAL_MAX_DELAY);
+}
+
+void sendGyroData(int16_t gx,int16_t gy,int16_t gz) {
+    uint8_t data[6];
+
+
+    // Convert int16_t values to bytes
+    data[0] = (gx >> 8) & 0xFF;  data[1] = gx & 0xFF;
+    data[2] = (gy >> 8) & 0xFF;  data[3] = gy & 0xFF;
+    data[4] = (gz >> 8) & 0xFF;  data[5] = gz & 0xFF;
+
+    // Send all 6 bytes
+    HAL_UART_Transmit(&huart1, data, 6, HAL_MAX_DELAY);
+}
+
+void sendBmpData(float altitude, float pressure, float temperature) {
+    sendFloatAsBytes(altitude);
+    sendFloatAsBytes(pressure);
+    sendFloatAsBytes(temperature);
+}
+
+
 
 MPU9250_Data mpu_data;
+
+#include "lwgps/lwgps.h"
+lwgps_t gps;
+
+uint8_t rx_buffer [128] ;
+uint8_t rx_data = 0 ;
+uint8_t rx_index = 0 ;
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+	if(huart == &huart2){
+		if(rx_data != '\n' && rx_index < sizeof(rx_buffer)){
+			rx_buffer[rx_index] = rx_data;
+			rx_index++;
+		}else{
+			lwgps_process(&gps, rx_buffer, rx_index+1);
+			rx_index = 0;
+			rx_data = 0; //
+		}
+		HAL_UART_Receive_IT(&huart2, &rx_data, 1);
+	}
+
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -97,23 +158,41 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-
-  MX_USART1_UART_Init();
   MX_I2C1_Init();
+  MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  lwgps_init(&gps);
+
+  HAL_UART_Receive_IT(&huart2, &rx_data, 1);
+
   MPU9250_Init(&hi2c1);
-  char msg[] = "Hello, UART!\r\n";
+  BMP280_Data bmp280_data;
+  BMP280_Init(&hi2c1, &bmp280_data);
+//  char msg[] = "Hello, UART!\r\n";
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+//	  sendFloatAsBytes(gps.latitude);
+//
+//	  gps.sats_in_view;
+
+
+//	  send_uart_message(msg);
+	  HAL_Delay(100);
+	  BMP280_Read_Data(&hi2c1, &bmp280_data);
+
+//	  MPU9250_Read_All(&hi2c1, &mpu_data);
+	  sendBmpData(bmp280_data.altitude, bmp280_data.pressure, bmp280_data.temperature);
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  send_uart_message(msg);
-	  HAL_Delay(100);
+
   }
   /* USER CODE END 3 */
 }
@@ -218,6 +297,39 @@ static void MX_USART1_UART_Init(void)
   /* USER CODE BEGIN USART1_Init 2 */
 
   /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 9600;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
 
 }
 
