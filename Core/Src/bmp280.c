@@ -25,7 +25,7 @@ HAL_StatusTypeDef BMP280_Init(I2C_HandleTypeDef *hi2c,BMP280_Data *bmp280_data){
     HAL_Delay(10); //reset icin bekle (min 2ms)
     
     //calibration data oku
-    status=Read_Calibration_Data(hi2c,bmp280_data);
+    status=BMP280_Read_Calibration_Data(hi2c,bmp280_data);
     if (status!=HAL_OK) return status;
 
     //default oversampling ve power mode ayarla 
@@ -42,9 +42,14 @@ HAL_StatusTypeDef BMP280_Init(I2C_HandleTypeDef *hi2c,BMP280_Data *bmp280_data){
 
 }
 
-HAL_StatusTypeDef Read_Calibration_Data(I2C_HandleTypeDef *hi2c,BMP280_Data *dev){
-    uint8_t calib_data_buffer[26];
-    if (HAL_I2C_Mem_Read(hi2c, BMP280_I2C_ADDR, BMP280_REG_PRESS_MSB, I2C_MEMADD_SIZE_8BIT, calib_data_buffer, 26, 100)!=HAL_OK)
+HAL_StatusTypeDef BMP280_Reset(I2C_HandleTypeDef *hi2c) {
+    uint8_t reset_cmd = BMP280_REG_SOFTRESET_VAL;
+    return HAL_I2C_Mem_Write(hi2c, BMP280_I2C_ADDR, BMP280_REG_SOFTRESET, I2C_MEMADD_SIZE_8BIT, &reset_cmd, 1, 100);
+}
+
+HAL_StatusTypeDef BMP280_Read_Calibration_Data(I2C_HandleTypeDef *hi2c,BMP280_Data *dev){
+    uint8_t calib_data_buffer[24];
+    if (HAL_I2C_Mem_Read(hi2c, BMP280_I2C_ADDR, BMP280_REG_CALIB_START, I2C_MEMADD_SIZE_8BIT, calib_data_buffer, 24, 100)!=HAL_OK)
     {
         return HAL_ERROR;
     }
@@ -161,8 +166,7 @@ HAL_StatusTypeDef BMP280_Read_Data(I2C_HandleTypeDef *hi2c,BMP280_Data *bmp280_d
     compensated_temperature = BMP280_Compensate_Temperature(raw_temperature, &t_fine,bmp280_data);
     compensated_pressure = BMP280_Compensate_Pressure(raw_pressure, t_fine,bmp280_data);
     //basincdan yukseklik hesabi
-    float altitude = 44330 * (1.0 - pow((compensated_pressure / SEA_LEVEL_PRESSURE), 0.190295));
-
+    float altitude = 44330 * (1.0 - pow(((compensated_pressure / 100.0f) / SEA_LEVEL_PRESSURE), 0.190295)); 
     bmp280_data->temperature = compensated_temperature;
     bmp280_data->pressure = compensated_pressure;
     bmp280_data->altitude = altitude;

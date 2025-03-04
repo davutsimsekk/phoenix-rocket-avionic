@@ -1,6 +1,6 @@
 ../Core/Src/bmp280.c:13:19:BMP280_Init	7
 ../Core/Src/bmp280.c:45:19:Read_Calibration_Data	2
-../Core/Src/bmp280.c:71:19:BMP280_Config	4
+../Core/Src/bmp280.c:71:19:BMP280_Config	2
 ../Core/Src/bmp280.c:84:19:BMP280_Set_Filter	2
 ../Core/Src/bmp280.c:94:19:BMP280_Set_Standby_Time	2
 ../Core/Src/bmp280.c:106:19:BMP280_Read_Raw_Data	2

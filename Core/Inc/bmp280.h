@@ -14,7 +14,7 @@
 
 #define SEA_LEVEL_PRESSURE          (1013.25f)
 //sd0 pini low ise i2c BMP280 addresi sensor 0x77 eger sd0 pini high ise i2c BMP280 addresi  
-#define BMP280_I2C_ADDR             0x76
+#define BMP280_I2C_ADDR             0x76<<1
 
 //alttaki adresi okuyunca onun altindaki degeri donmeli
 #define BMP280_REG_ID               0xD0
@@ -38,7 +38,7 @@
 //temp raw datasinin msb lerinin saklandigi register bir sonraki register 0xFB lsb leri iceriyor
 #define BMP280_REG_TEMP_MSB         0xFA
 
-
+#define BMP280_REG_CALIB_START      0x88
 
 
 typedef enum {
@@ -95,32 +95,32 @@ typedef struct {
     int16_t  dig_P7;  ///< Calibration data for pressure (parameter 7)
     int16_t  dig_P8;  ///< Calibration data for pressure (parameter 8)
     int16_t  dig_P9;  ///< Calibration data for pressure (parameter 9)
-    uint8_t  dig_H1;  ///< Calibration data for humidity (parameter 1) - BMP280 doesn't have humidity but struct from common Bosch library might include it
-    int16_t  dig_H2;  ///< Calibration data for humidity (parameter 2)
-    uint8_t  dig_H3;  ///< Calibration data for humidity (parameter 3)
-    int16_t  dig_H4;  ///< Calibration data for humidity (parameter 4)
-    int16_t  dig_H5;  ///< Calibration data for humidity (parameter 5)
-    int8_t   dig_H6;  ///< Calibration data for humidity (parameter 6)
+    // uint8_t  dig_H1;  ///< Calibration data for humidity (parameter 1) - BMP280 doesn't have humidity but struct from common Bosch library might include it
+    // int16_t  dig_H2;  ///< Calibration data for humidity (parameter 2)
+    // uint8_t  dig_H3;  ///< Calibration data for humidity (parameter 3)
+    // int16_t  dig_H4;  ///< Calibration data for humidity (parameter 4)
+    // int16_t  dig_H5;  ///< Calibration data for humidity (parameter 5)
+    // int8_t   dig_H6;  ///< Calibration data for humidity (parameter 6)
 }BMP280_Calib_Data;
 
 
 typedef struct 
 {
-    int16_t temperature;
-    int16_t pressure;
-    int16_t altitude;
+    float temperature;
+    float pressure;
+    float altitude;
 
-    int16_t temperature_kalman;
-    int16_t pressure_kalman;
-    int16_t altitude_kalman;
+    // float temperature_kalman;
+    // float pressure_kalman;
+    // float altitude_kalman;
 
     BMP280_Calib_Data calib_data;
 } BMP280_Data;
 
 
 
-void BMP280_Reset();
-HAL_StatusTypeDef Read_Calibration_Data(I2C_HandleTypeDef *hi2c,BMP280_Data *dev);
+HAL_StatusTypeDef BMP280_Reset(I2C_HandleTypeDef *hi2c);
+HAL_StatusTypeDef BMP280_Read_Calibration_Data(I2C_HandleTypeDef *hi2c,BMP280_Data *dev);
 HAL_StatusTypeDef BMP280_Config(I2C_HandleTypeDef *hi2c, bmp280_oversampling_mode pressure_os, bmp280_oversampling_mode temp_os,bmp280_mode_t mode);
 HAL_StatusTypeDef BMP280_Init(I2C_HandleTypeDef *hi2c,BMP280_Data *bmp280_data);
 HAL_StatusTypeDef BMP280_Read_Raw_Data(I2C_HandleTypeDef *hi2c,int32_t *raw_pressure, int32_t *raw_temperature);
